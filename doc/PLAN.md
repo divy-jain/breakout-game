@@ -116,20 +116,129 @@ ball to the paddle*
 
 ## Level Descriptions
 
- * Idea #1
+ * Idea #1 - *Classic Breakout*
 
- * Idea #2
 
- * Idea #3
+   Block Configuration: 
+   
+   1 0 0 0 0 0
+
+   0 2 0 0 0 0
+
+   0 0 5 0 0 0
+
+   0 0 0 3 0 0
+
+   0 0 0 0 4 0
+
+
+   
+Variations: Basic Breakout gameplay, introducing players to core mechanics. Traditional paddle, standard ball behavior.
+
+ * Idea #2 - *More blocks and blocks that require multiple hits*
+
+Block Configuration:
+
+0 0 5 5 0 0
+
+0 5 5 5 5 0
+
+0 5 5 5 5 0
+
+5 5 5 5 5 5
+
+5 4 5 5 4 5
+
+5 4 5 5 4 5
+
+5 5 5 5 5 5
+
+5 5 5 5 5 5
+
+5 2 2 2 2 5
+
+5 5 5 5 5 5
+
+1 1 1 1 1 1
+
+1 1 1 1 1 1
+
+1 1 1 1 1 1
+
+0 3 0 0 3 0
+
+0 3 0 0 3 0
+
+0 3 0 0 3 0
+
+0 3 0 0 3 0
+
+1 1 0 0 1 1
+
+Variations: More blocks requiring multiple hits by the ball, standard paddle
+and standard speed of block. Simply harder block configuration
+
+ * Idea #3 - * Smaller paddle and faster ball*
+
+Block Configuration:
+
+0 2 3 3 2 0
+
+0 2 2 2 2 0
+
+0 2 2 2 2 0
+
+0 0 2 2 0 0
+
+0 0 2 2 0 0
+
+0 0 0 0 0 0
+
+5 1 5 1 5 1
+
+1 5 1 5 1 5
+
+5 1 5 1 5 1
+
+0 0 0 0 0 0
+
+Variation: Smaller paddle, faster ball. More blocks
+requiring multiple hits than level 1, but lesser than level 2.
 
 
 ## Class Ideas
 
- * Idea #1
+### Idea #1 - *GameController Class*
 
- * Idea #2
+Methods:
 
- * Idea #3
+- start_game: Initiates the game, sets up initial configurations.
+- end_game: Handles game over conditions, displays end-game information.
+- load_level: Loads a specific game level, setting up block configurations.
+- update_score: Updates the player's score based on game events.
 
- * Idea #4
+### Idea #2 - *Ball Class*
+
+Methods:
+
+- move: Controls the movement of the ball on the screen.
+- bounce: Manages the ball's bouncing behavior off walls, paddles, and blocks.
+- destroy_block: Handles the destruction of blocks upon collision with the ball.
+
+### Idea #3 - *Paddle Class*
+
+Methods:
+
+- move: Allows the player to move the paddle left and right.
+- apply_ability: Implements the chosen ability for the paddle (e.g., directional bounce, screen warping).
+- catch_ball: Enables the paddle to catch the ball temporarily.
+- release_ball: Releases the caught ball when triggered.
+
+### Idea #4 - *Block Class*
+
+Methods: 
+
+- receive_hit: Manages the block's response when hit by the ball.
+- destroy: Handles the destruction of the block.
+- drop_power_up: Initiates the dropping of power-ups when certain blocks are destroyed.
 

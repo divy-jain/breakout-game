@@ -12,7 +12,7 @@ import javafx.scene.shape.Circle;
 /**
  * Feel free to completely change this code or delete it entirely.
  *
- * @author YOUR NAME HERE
+ * @author Divyansh Jain
  */
 public class Main extends Application {
     // useful names for constant values used

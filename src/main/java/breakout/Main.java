@@ -5,6 +5,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
@@ -33,19 +34,20 @@ public class Main extends Application {
     private static final int PADDLE_HEIGHT = 10;
     private static final int BALL_RADIUS = 10;
 
+    private static final int NUM_BLOCKS = 10;
+
     private double ballX = WINDOW_WIDTH / 2;
     private double ballY = WINDOW_HEIGHT / 2;
-    private double ballSpeedX = 2;
-    private double ballSpeedY = 1;
+    private double ballSpeedX = 1;
+    private double ballSpeedY = 1.5;
 
-    private int remainingBlocks = 20;
+    private int remainingBlocks = NUM_BLOCKS*2;
 
     /**
      * Initialize what will be displayed.
      */
     @Override
     public void start (Stage stage) {
-
 
         Group root = new Group();
 
@@ -59,17 +61,27 @@ public class Main extends Application {
         paddle.setX(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2);
         paddle.setY(WINDOW_HEIGHT - PADDLE_HEIGHT - 10);
 
-        // Create block
-        Rectangle block = new Rectangle(50, 20, Color.RED);
-        block.setTranslateX(WINDOW_WIDTH / 4);
-        block.setTranslateY(WINDOW_HEIGHT / 4);
+        // Create blocks
 
-        root.getChildren().addAll(ball, paddle, block);
+        for (int i=0; i<NUM_BLOCKS;i++){
+            Block block = new Block();
+            block.place_block(block, 25*i, WINDOW_HEIGHT/4);
+            root.getChildren().add(block);
+        }
+
+        for (int i=0; i<NUM_BLOCKS;i++){
+            Block block = new Block();
+            block.place_block(block,25*i, WINDOW_HEIGHT/2 );
+            root.getChildren().add(block);
+        }
+
+        root.getChildren().addAll(ball, paddle);
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10), event -> {
             // Update ball position
             ballX += ballSpeedX;
             ballY += ballSpeedY;
+
             ball.setTranslateX(ballX);
             ball.setTranslateY(ballY);
 
@@ -79,14 +91,19 @@ public class Main extends Application {
             }
 
             // Ball-block collision
-            if (ball.getBoundsInParent().intersects(block.getBoundsInParent())) {
-                root.getChildren().remove(block); // Remove block on collision
-                ballSpeedY = -ballSpeedY; // Reverse Y direction
-                remainingBlocks--;
 
-                // Check if all blocks are destroyed
-                if (remainingBlocks == 0) {
-                    stopGame(stage, "Congratulations! You won!");
+
+            for (Node node : root.getChildren()) {
+                if (node instanceof Block && ball.getBoundsInParent().intersects(node.getBoundsInParent())) {
+                    root.getChildren().remove(node); // Remove block on collision
+                    ballSpeedY = -ballSpeedY; // Reverse Y direction
+                    remainingBlocks--;
+
+                    // Check if all blocks are destroyed
+                    if (remainingBlocks == 0) {
+                        stopGame(stage, "Congratulations! You won!");
+                    }
+                    break; // Break out of loop to avoid concurrent modification exception
                 }
             }
 
@@ -101,7 +118,7 @@ public class Main extends Application {
 
             // Check if ball hits the bottom of the window
             if (ballY > paddle.getY()+10) {
-                stopGame(stage, "Game Over. You lost.");
+                stopGame(stage, "Game Over. Better Luck Next time.");
             }
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
@@ -111,11 +128,20 @@ public class Main extends Application {
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.LEFT) {
-                paddle.setTranslateX(paddle.getTranslateX() - 20);
+                if (paddle.getX() < 0) {
+                    paddle.setTranslateX(WINDOW_WIDTH - PADDLE_WIDTH);
+                } else {
+                    paddle.setTranslateX(paddle.getTranslateX() - 75);
+                }
             } else if (event.getCode() == KeyCode.RIGHT) {
-                paddle.setTranslateX(paddle.getTranslateX() + 20);
+                if (paddle.getX() > WINDOW_WIDTH - PADDLE_WIDTH) {
+                    paddle.setTranslateX(0);
+                } else {
+                    paddle.setTranslateX(paddle.getTranslateX() + 75);
+                }
             }
         });
+
 
         System.out.println(paddle.getY());
         System.out.println(ball.getCenterY());
@@ -137,3 +163,33 @@ public class Main extends Application {
         }
 
 
+class Block extends Group{
+
+    private static final int WINDOW_WIDTH = 400;
+    private static final int WINDOW_HEIGHT = 400;
+
+
+    public Block(){
+        Rectangle block = new Rectangle(25,50,Color.RED);
+        block.setStroke(Color.GREEN);
+        block.setStrokeWidth(5);
+        getChildren().add(block);
+    }
+
+    public void place_block(Block block, double x_coordinate, double y_coordinate){
+        block.setTranslateX(x_coordinate);
+        block.setTranslateY(y_coordinate);
+    }
+
+}
+
+
+class SpeedBoost extends Group {
+
+    private static final double POWER_UP_RADIUS = 10;
+
+    public SpeedBoost() {
+        Circle powerUp = new Circle(POWER_UP_RADIUS, Color.YELLOW);
+        getChildren().add(powerUp);
+    }
+}

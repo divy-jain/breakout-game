@@ -40,7 +40,6 @@ public class Main extends Application {
     private double ballY = WINDOW_HEIGHT / 2;
     private double ballSpeedX = 1;
     private double ballSpeedY = 1.5;
-
     private int remainingBlocks = NUM_BLOCKS*2;
 
     /**
@@ -57,10 +56,7 @@ public class Main extends Application {
         ball.setTranslateY(ballY);
 
         // Create paddle
-        Rectangle paddle = new Rectangle(PADDLE_WIDTH, PADDLE_HEIGHT, Color.GREEN);
-        paddle.setX(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2);
-        paddle.setY(WINDOW_HEIGHT - PADDLE_HEIGHT - 10);
-
+        Paddle paddle = new Paddle(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2, WINDOW_HEIGHT - PADDLE_HEIGHT - 10,PADDLE_WIDTH,PADDLE_HEIGHT);
         // Create blocks
 
         for (int i=0; i<NUM_BLOCKS;i++){
@@ -75,7 +71,7 @@ public class Main extends Application {
             root.getChildren().add(block);
         }
 
-        root.getChildren().addAll(ball, paddle);
+        root.getChildren().addAll(ball,paddle);
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10), event -> {
             // Update ball position
@@ -91,7 +87,6 @@ public class Main extends Application {
             }
 
             // Ball-block collision
-
 
             for (Node node : root.getChildren()) {
                 if (node instanceof Block && ball.getBoundsInParent().intersects(node.getBoundsInParent())) {
@@ -117,7 +112,7 @@ public class Main extends Application {
             }
 
             // Check if ball hits the bottom of the window
-            if (ballY > paddle.getY()+10) {
+            if (ballY > paddle.paddle_getY()+10) {
                 stopGame(stage, "Game Over. Better Luck Next time.");
             }
         }));
@@ -128,13 +123,13 @@ public class Main extends Application {
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.LEFT) {
-                if (paddle.getX() < 0) {
+                if (paddle.paddle_getX() < 0) {
                     paddle.setTranslateX(WINDOW_WIDTH - PADDLE_WIDTH);
                 } else {
                     paddle.setTranslateX(paddle.getTranslateX() - 75);
                 }
             } else if (event.getCode() == KeyCode.RIGHT) {
-                if (paddle.getX() > WINDOW_WIDTH - PADDLE_WIDTH) {
+                if (paddle.paddle_getX() > WINDOW_WIDTH - PADDLE_WIDTH) {
                     paddle.setTranslateX(0);
                 } else {
                     paddle.setTranslateX(paddle.getTranslateX() + 75);
@@ -143,7 +138,7 @@ public class Main extends Application {
         });
 
 
-        System.out.println(paddle.getY());
+        System.out.println(paddle.paddle_getX());
         System.out.println(ball.getCenterY());
 
 
@@ -170,7 +165,7 @@ class Block extends Group{
 
 
     public Block(){
-        Rectangle block = new Rectangle(25,50,Color.RED);
+        Rectangle block = new Rectangle(25,25,Color.RED);
         block.setStroke(Color.GREEN);
         block.setStrokeWidth(5);
         getChildren().add(block);
@@ -182,6 +177,40 @@ class Block extends Group{
     }
 
 }
+
+class Paddle extends Group {
+
+    private Rectangle paddle;
+
+    private static final int WINDOW_WIDTH = 400;
+    private static final int WINDOW_HEIGHT = 400;
+    private static final int PADDLE_WIDTH = 60;
+    private static final int PADDLE_HEIGHT = 10;
+
+    public Paddle(){
+         paddle = new Rectangle(50,50,Color.GREEN);
+         getChildren().add(paddle);
+
+    }
+    public Paddle(double x_coordinate, double y_coordinate,double width,double height){
+        paddle = new Rectangle(width,height,Color.GREEN);
+        paddle.setX(x_coordinate);
+        paddle.setY(y_coordinate);
+        getChildren().add(paddle);
+    }
+
+
+    public double paddle_getX() {
+        return paddle.getX();
+    }
+
+    public double paddle_getY(){
+        return paddle.getY();
+    }
+}
+
+
+
 
 
 class SpeedBoost extends Group {

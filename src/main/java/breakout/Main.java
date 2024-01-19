@@ -39,7 +39,7 @@ public class Main extends Application {
     private double ballX = WINDOW_WIDTH / 2;
     private double ballY = WINDOW_HEIGHT / 2;
     private double ballSpeedX = 1;
-    private double ballSpeedY = 1.5;
+    private double ballSpeedY = 1.75;
     private int remainingBlocks = NUM_BLOCKS*2;
 
     /**
@@ -115,26 +115,29 @@ public class Main extends Application {
             if (ballY > paddle.paddle_getY()+10) {
                 stopGame(stage, "Game Over. Better Luck Next time.");
             }
+
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
         // Handle paddle movement
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
+        scene.setFill(Color.LAVENDER);
         scene.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.LEFT) {
-                if (paddle.paddle_getX() < 0) {
-                    paddle.setTranslateX(WINDOW_WIDTH - PADDLE_WIDTH);
-                } else {
-                    paddle.setTranslateX(paddle.getTranslateX() - 75);
-                }
-            } else if (event.getCode() == KeyCode.RIGHT) {
-                if (paddle.paddle_getX() > WINDOW_WIDTH - PADDLE_WIDTH) {
-                    paddle.setTranslateX(0);
-                } else {
-                    paddle.setTranslateX(paddle.getTranslateX() + 75);
-                }
+                    paddle.setTranslateX(paddle.getTranslateX() - 20);
             }
+            else if (event.getCode() == KeyCode.RIGHT) {
+                    paddle.setTranslateX(paddle.getTranslateX() + 20);
+            }
+
+            if (paddle.getTranslateX() < 0 - (WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)-PADDLE_WIDTH) {
+                paddle.setTranslateX(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2); // Move to the right side
+            } else if (paddle.getTranslateX() > (WINDOW_WIDTH/2 - PADDLE_WIDTH/2 + PADDLE_WIDTH)) {
+                paddle.setTranslateX(0-(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)); // Move to the left side
+            }
+
+
         });
 
 
@@ -159,9 +162,10 @@ public class Main extends Application {
 
 
 class Block extends Group{
-
     private static final int WINDOW_WIDTH = 400;
     private static final int WINDOW_HEIGHT = 400;
+
+    private int hits_required;
 
 
     public Block(){
@@ -181,7 +185,6 @@ class Block extends Group{
 class Paddle extends Group {
 
     private Rectangle paddle;
-
     private static final int WINDOW_WIDTH = 400;
     private static final int WINDOW_HEIGHT = 400;
     private static final int PADDLE_WIDTH = 60;
@@ -199,13 +202,20 @@ class Paddle extends Group {
         getChildren().add(paddle);
     }
 
-
     public double paddle_getX() {
         return paddle.getX();
     }
 
     public double paddle_getY(){
         return paddle.getY();
+    }
+
+    public void check_side_switch() {
+        if (paddle.getTranslateX() < 0 - (WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)-PADDLE_WIDTH) {
+            paddle.setTranslateX(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2); // Move to the right side
+        } else if (paddle.getTranslateX() > (WINDOW_WIDTH/2 - PADDLE_WIDTH/2 + PADDLE_WIDTH)) {
+            paddle.setTranslateX(0-(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)); // Move to the left side
+        }
     }
 }
 

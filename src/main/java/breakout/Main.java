@@ -3,8 +3,7 @@ package breakout;
 import java.util.*;
 import java.io.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import   javafx.animation.Animation;
+import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -72,7 +71,6 @@ public class Main extends Application {
         Main.ball = ball;
         // Create paddle
 
-
         Main.paddle = new Paddle(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2, WINDOW_HEIGHT - PADDLE_HEIGHT,PADDLE_WIDTH,PADDLE_HEIGHT);
         // Create blocks
 
@@ -83,7 +81,6 @@ public class Main extends Application {
 
         // Flag to check if the game has started
         AtomicBoolean gameStarted = new AtomicBoolean(false);
-
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10), event -> {
 
@@ -278,8 +275,6 @@ class ConfigParser {
                 return new SpecialBlock();
             case 4:
                 return new PowerUpBlock();
-            case 5:
-                return new ExplodingBlock();
             default:
                 return new NormalBlock(); // Default to NormalBlock if type is unknown
         }
@@ -292,15 +287,14 @@ class Block extends Group {
     private int health;
     private boolean isSpecial;
     private boolean isPowerUp;
-    private boolean isExploding;
+
     private Color color;
 
-    public Block(int hitsRequired, boolean isSpecial, boolean isPowerUp, boolean isExploding, Color color) {
+    public Block(int hitsRequired, boolean isSpecial, boolean isPowerUp, Color color) {
         this.hitsRequired = hitsRequired;
         this.health = hitsRequired;
         this.isSpecial = isSpecial;
         this.isPowerUp = isPowerUp;
-        this.isExploding = isExploding;
         this.color = color;
 
         Rectangle block = new Rectangle(Main.BLOCK_WIDTH, Main.BLOCK_HEIGHT, color);
@@ -380,14 +374,14 @@ class Paddle extends Group {
 }
 class NormalBlock extends Block {
     public NormalBlock() {
-        super(1, false, false, false, Color.SIENNA);
+        super(1, false, false,  Color.PAPAYAWHIP);
     }
 }
 
 class MultiHitBlock extends Block {
 
     public MultiHitBlock(int hitsRequired) {
-        super(hitsRequired, false, false, false, getColorForType(hitsRequired));
+        super(hitsRequired, false, false,  getColorForType(hitsRequired));
     }
 
     private static Color getColorForType(int hitsRequired) {
@@ -402,7 +396,7 @@ class MultiHitBlock extends Block {
 
 class SpecialBlock extends Block {
     public SpecialBlock() {
-        super(2, true, false, false, Color.BLUE);
+        super(2, true, false,  Color.BLUE);
     }
 
     public void takeHit(Paddle paddle) {
@@ -423,7 +417,7 @@ class SpecialBlock extends Block {
 
 class PowerUpBlock extends Block {
     public PowerUpBlock() {
-        super(3, false, true, false, Color.SILVER);
+        super(3, false, true,  Color.SILVER);
     }
 
     @Override
@@ -436,17 +430,6 @@ class PowerUpBlock extends Block {
 
         // Add the power-up to the root group
         ((Group) this.getParent()).getChildren().add(powerUp);
-    }
-}
-class ExplodingBlock extends Block {
-    public ExplodingBlock() {
-        super(4, false, false, true, Color.YELLOW);
-    }
-
-    @Override
-    public void takeHit() {
-        super.takeHit();
-        // Implement logic to destroy or damage neighboring blocks
     }
 }
 

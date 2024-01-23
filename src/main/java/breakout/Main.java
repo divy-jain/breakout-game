@@ -1,6 +1,10 @@
 package breakout;
 
-import javafx.animation.Animation;
+import java.util.*;
+import java.io.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import   javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -8,9 +12,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.scene.shape.Circle;
@@ -22,25 +24,32 @@ import javafx.util.Duration;
  *
  * @author Divyansh Jain
  */
+
 public class Main extends Application {
     // useful names for constant values used
     public static final String TITLE = "Example JavaFX Animation";
     public static final Color DUKE_BLUE = new Color(0, 0.188, 0.529, 1);
     public static final int SIZE = 400;
 
-    private static final int WINDOW_WIDTH = 400;
-    private static final int WINDOW_HEIGHT = 400;
-    private static final int PADDLE_WIDTH = 60;
-    private static final int PADDLE_HEIGHT = 10;
-    private static final int BALL_RADIUS = 10;
+    public static double BLOCK_WIDTH = 40;
 
-    private static final int NUM_BLOCKS = 10;
+    public static double BLOCK_HEIGHT = 30;
 
-    private double ballX = WINDOW_WIDTH / 2;
-    private double ballY = WINDOW_HEIGHT / 2;
-    private double ballSpeedX = 1;
-    private double ballSpeedY = 1.75;
-    private int remainingBlocks = NUM_BLOCKS*2;
+    public static final int WINDOW_WIDTH = 400;
+    public static final int WINDOW_HEIGHT = 400;
+    public static final int PADDLE_WIDTH = 60;
+
+    public static final double MAX_BOUNCE_ANGLE = Math.PI / 4.0;
+    public static final int PADDLE_HEIGHT = 10;
+    public static final int BALL_RADIUS = 3;
+
+    public static final int NUM_BLOCKS = 10;
+
+    public double ballX = WINDOW_WIDTH / 2;
+    public double ballY = WINDOW_HEIGHT / 2;
+    public static double ballSpeedX = 1;
+    public static double ballSpeedY = 1.3;
+    public static int remainingBlocks;
 
     /**
      * Initialize what will be displayed.
@@ -52,28 +61,26 @@ public class Main extends Application {
 
         // Create ball
         Circle ball = new Circle(BALL_RADIUS, Color.BLUE);
-        ball.setTranslateX(ballX);
-        ball.setTranslateY(ballY);
-
+        ball.setTranslateX(WINDOW_WIDTH / 2 );
+        ball.setTranslateY(WINDOW_HEIGHT-PADDLE_HEIGHT-BALL_RADIUS);
         // Create paddle
-        Paddle paddle = new Paddle(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2, WINDOW_HEIGHT - PADDLE_HEIGHT - 10,PADDLE_WIDTH,PADDLE_HEIGHT);
+        Paddle paddle = new Paddle(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2, WINDOW_HEIGHT - PADDLE_HEIGHT,PADDLE_WIDTH,PADDLE_HEIGHT);
         // Create blocks
 
-        for (int i=0; i<NUM_BLOCKS;i++){
-            Block block = new Block();
-            block.place_block(block, 25*i, WINDOW_HEIGHT/4);
-            root.getChildren().add(block);
-        }
-
-        for (int i=0; i<NUM_BLOCKS;i++){
-            Block block = new Block();
-            block.place_block(block,25*i, WINDOW_HEIGHT/2 );
-            root.getChildren().add(block);
-        }
-
+        // Parse configuration file and create blocks
+        List<Block> blocks = ConfigParser.parseConfigFile("C:\\Users\\divya\\IdeaProjects\\projects\\breakout_dj200\\src\\main\\java\\breakout\\level1");
+        root.getChildren().addAll(blocks);
         root.getChildren().addAll(ball,paddle);
 
+        // Flag to check if the game has started
+        AtomicBoolean gameStarted = new AtomicBoolean(false);
+
+
         Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10), event -> {
+
+            if (!gameStarted.get()) {
+                return;  // Do nothing if the game hasn't started
+            }
             // Update ball position
             ballX += ballSpeedX;
             ballY += ballSpeedY;
@@ -82,17 +89,16 @@ public class Main extends Application {
             ball.setTranslateY(ballY);
 
             // Ball-paddle collision
-            if (ball.getBoundsInParent().intersects(paddle.getBoundsInParent())) {
-                ballSpeedY = -ballSpeedY; // Reverse Y direction
-            }
+            paddle.ball_paddle_collision(ball, paddle);
 
             // Ball-block collision
 
             for (Node node : root.getChildren()) {
                 if (node instanceof Block && ball.getBoundsInParent().intersects(node.getBoundsInParent())) {
-                    root.getChildren().remove(node); // Remove block on collision
+                    Block block = (Block) node;
+                    block.takeHit(); // Remove block on collision
                     ballSpeedY = -ballSpeedY; // Reverse Y direction
-                    remainingBlocks--;
+
 
                     // Check if all blocks are destroyed
                     if (remainingBlocks == 0) {
@@ -137,6 +143,11 @@ public class Main extends Application {
                 paddle.setTranslateX(0-(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)); // Move to the left side
             }
 
+            if (event.getCode() == KeyCode.SPACE && !gameStarted.get()) {
+                gameStarted.set(true);  // Set gameStarted to true when space bar is pressed
+                // Start the game loop
+                timeline.play();
+            }
 
         });
 
@@ -160,43 +171,107 @@ public class Main extends Application {
             }
         }
 
+class ConfigParser {
+    public static List<Block> parseConfigFile(String filePath) {
+        List<Block> blocks = new ArrayList<>();
 
-class Block extends Group{
-    private static final int WINDOW_WIDTH = 400;
-    private static final int WINDOW_HEIGHT = 400;
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            int row = 0;
 
-    private int hits_required;
+            while ((line = br.readLine()) != null) {
+
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+
+                String[] tokens = line.split(" ");
+
+                for (int col = 0; col < tokens.length; col++) {
+                    int blockType = Integer.parseInt(tokens[col]);
+                    Block block = createBlock(blockType);
+                    block.place_block(block, col * Main.BLOCK_WIDTH, row * Main.BLOCK_HEIGHT);
+                    blocks.add(block);
+                }
+
+                row++;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return blocks;
+    }
+
+    private static Block createBlock(int blockType) {
+        switch (blockType) {
+            case 0:
+                return new NormalBlock();
+            case 1:
+                return new MultiHitBlock(2);
+            case 2:
+                return new MultiHitBlock(4);
+            case 3:
+                return new SpecialBlock();
+            case 4:
+                return new PowerUpBlock();
+            case 5:
+                return new ExplodingBlock();
+            default:
+                return new NormalBlock(); // Default to NormalBlock if type is unknown
+        }
+    }
+}
 
 
-    public Block(){
-        Rectangle block = new Rectangle(25,25,Color.RED);
+class Block extends Group {
+    private int hitsRequired;
+    private int health;
+    private boolean isSpecial;
+    private boolean isPowerUp;
+    private boolean isExploding;
+    private Color color;
+
+    public Block(int hitsRequired, boolean isSpecial, boolean isPowerUp, boolean isExploding, Color color) {
+        this.hitsRequired = hitsRequired;
+        this.health = hitsRequired;
+        this.isSpecial = isSpecial;
+        this.isPowerUp = isPowerUp;
+        this.isExploding = isExploding;
+        this.color = color;
+
+        Rectangle block = new Rectangle(Main.BLOCK_WIDTH, Main.BLOCK_HEIGHT, color);
         block.setStroke(Color.GREEN);
         block.setStrokeWidth(5);
         getChildren().add(block);
     }
 
-    public void place_block(Block block, double x_coordinate, double y_coordinate){
+    public void place_block(Block block, double x_coordinate, double y_coordinate) {
         block.setTranslateX(x_coordinate);
         block.setTranslateY(y_coordinate);
     }
 
+    public void takeHit() {
+        health--;
+
+        if (health <= 0) {
+            getChildren().clear();
+            // Additional logic for multi-hit block destruction
+            Main.remainingBlocks -= 1;
+        }
+    }
 }
 
 class Paddle extends Group {
-
     private Rectangle paddle;
-    private static final int WINDOW_WIDTH = 400;
-    private static final int WINDOW_HEIGHT = 400;
-    private static final int PADDLE_WIDTH = 60;
-    private static final int PADDLE_HEIGHT = 10;
 
-    public Paddle(){
-         paddle = new Rectangle(50,50,Color.GREEN);
-         getChildren().add(paddle);
-
+    public Paddle() {
+        paddle = new Rectangle(50, 50, Color.GREEN);
+        getChildren().add(paddle);
     }
-    public Paddle(double x_coordinate, double y_coordinate,double width,double height){
-        paddle = new Rectangle(width,height,Color.GREEN);
+
+    public Paddle(double x_coordinate, double y_coordinate, double width, double height) {
+        paddle = new Rectangle(width, height, Color.GREEN);
         paddle.setX(x_coordinate);
         paddle.setY(y_coordinate);
         getChildren().add(paddle);
@@ -206,22 +281,85 @@ class Paddle extends Group {
         return paddle.getX();
     }
 
-    public double paddle_getY(){
+    public double paddle_getY() {
         return paddle.getY();
     }
 
     public void check_side_switch() {
-        if (paddle.getTranslateX() < 0 - (WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)-PADDLE_WIDTH) {
-            paddle.setTranslateX(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2); // Move to the right side
-        } else if (paddle.getTranslateX() > (WINDOW_WIDTH/2 - PADDLE_WIDTH/2 + PADDLE_WIDTH)) {
-            paddle.setTranslateX(0-(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)); // Move to the left side
+        if (paddle.getTranslateX() < 0 - (Main.WINDOW_WIDTH / 2 - Main.PADDLE_WIDTH / 2) - Main.PADDLE_WIDTH) {
+            paddle.setTranslateX(Main.WINDOW_WIDTH / 2 - Main.PADDLE_WIDTH / 2); // Move to the right side
+        } else if (paddle.getTranslateX() > (Main.WINDOW_WIDTH / 2 - Main.PADDLE_WIDTH / 2 + Main.PADDLE_WIDTH)) {
+            paddle.setTranslateX(0 - (Main.WINDOW_WIDTH / 2 - Main.PADDLE_WIDTH / 2)); // Move to the left side
+        }
+    }
+
+    public void ball_paddle_collision(Circle ball, Paddle paddle) {
+        if (ball.getBoundsInParent().intersects(paddle.getBoundsInParent())) {
+            double paddleThird = Main.PADDLE_WIDTH / 3.0;
+            double ballCenterX = ball.getTranslateX();
+
+            // Check if the ball's center is in the left third
+            if (ballCenterX < paddle.getBoundsInParent().getMinX() + paddleThird) {
+                Main.ballSpeedX = -Math.abs(Main.ballSpeedX); // Move left
+                Main.ballSpeedY = -Main.ballSpeedY;
+            }
+            // Check if the ball's center is in the right third
+            else if (ballCenterX > paddle.getBoundsInParent().getMinX() + 2 * paddleThird) {
+                Main.ballSpeedX = Math.abs(Main.ballSpeedX); // Move right
+                Main.ballSpeedY = -Main.ballSpeedY;
+            }
+            // Middle section, reflect normally
+            else {
+                Main.ballSpeedY = -Main.ballSpeedY; // Reverse Y direction
+            }
+        }
+    }
+}
+class NormalBlock extends Block {
+    public NormalBlock() {
+        super(1, false, false, false, Color.SIENNA);
+    }
+}
+
+class MultiHitBlock extends Block {
+
+    public MultiHitBlock(int hitsRequired) {
+        super(hitsRequired, false, false, false, getColorForType(hitsRequired));
+    }
+
+    private static Color getColorForType(int hitsRequired) {
+        if (hitsRequired == 2) {
+            return Color.LIGHTSALMON;
+        } else {
+            return Color.DARKSEAGREEN;
         }
     }
 }
 
 
+class SpecialBlock extends Block {
+    public SpecialBlock() {
+        super(2, true, false, false, Color.BLUE);
+    }
+}
 
+class PowerUpBlock extends Block {
+    public PowerUpBlock() {
+        super(3, false, true, false, Color.LIGHTSALMON);
+    }
+}
 
+class ExplodingBlock extends Block {
+    public ExplodingBlock() {
+        super(4, false, false, true, Color.YELLOW);
+    }
+
+    @Override
+    public void takeHit() {
+        super.takeHit();
+        // Implement logic to destroy or damage neighboring blocks
+    }
+}
 
 class SpeedBoost extends Group {
 

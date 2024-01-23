@@ -37,7 +37,7 @@ public class Main extends Application {
 
     public static final int WINDOW_WIDTH = 400;
     public static final int WINDOW_HEIGHT = 400;
-    public static final int PADDLE_WIDTH = 60;
+    public static int PADDLE_WIDTH = 60;
 
     public static final double MAX_BOUNCE_ANGLE = Math.PI / 4.0;
     public static final int PADDLE_HEIGHT = 10;
@@ -45,11 +45,17 @@ public class Main extends Application {
 
     public static final int NUM_BLOCKS = 10;
 
-    public double ballX = WINDOW_WIDTH / 2;
-    public double ballY = WINDOW_HEIGHT / 2;
+    public static double ballX = WINDOW_WIDTH / 2;
+    public static double ballY = WINDOW_HEIGHT / 2;
     public static double ballSpeedX = 1;
     public static double ballSpeedY = 1.3;
-    public static int remainingBlocks;
+    public static int remainingBlocks = 100;
+
+    public static Paddle paddle;
+
+    public static Circle ball;
+
+    public static boolean ballCaught = false;
 
     /**
      * Initialize what will be displayed.
@@ -63,8 +69,11 @@ public class Main extends Application {
         Circle ball = new Circle(BALL_RADIUS, Color.BLUE);
         ball.setTranslateX(WINDOW_WIDTH / 2 );
         ball.setTranslateY(WINDOW_HEIGHT-PADDLE_HEIGHT-BALL_RADIUS);
+        Main.ball = ball;
         // Create paddle
-        Paddle paddle = new Paddle(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2, WINDOW_HEIGHT - PADDLE_HEIGHT,PADDLE_WIDTH,PADDLE_HEIGHT);
+
+
+        Main.paddle = new Paddle(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2, WINDOW_HEIGHT - PADDLE_HEIGHT,PADDLE_WIDTH,PADDLE_HEIGHT);
         // Create blocks
 
         // Parse configuration file and create blocks
@@ -82,11 +91,12 @@ public class Main extends Application {
                 return;  // Do nothing if the game hasn't started
             }
             // Update ball position
-            ballX += ballSpeedX;
-            ballY += ballSpeedY;
-
-            ball.setTranslateX(ballX);
-            ball.setTranslateY(ballY);
+            if (!Main.ballCaught) {
+                ballX += ballSpeedX;
+                ballY += ballSpeedY;
+                ball.setTranslateX(ballX);
+                ball.setTranslateY(ballY);
+            }
 
             // Ball-paddle collision
             paddle.ball_paddle_collision(ball, paddle);
@@ -96,8 +106,20 @@ public class Main extends Application {
             for (Node node : root.getChildren()) {
                 if (node instanceof Block && ball.getBoundsInParent().intersects(node.getBoundsInParent())) {
                     Block block = (Block) node;
-                    block.takeHit(); // Remove block on collision
-                    ballSpeedY = -ballSpeedY; // Reverse Y direction
+                    if (block instanceof PowerUpBlock) {
+                        // Handle power-up block collision
+                        block.takeHit();
+                    }
+                    else if (block instanceof SpecialBlock) {
+                        // Pass the paddle object to takeHit method for SpecialBlock
+                        ((SpecialBlock) block).takeHit(paddle);
+                    }
+                    else{
+                        block.takeHit(); // Remove block on collision
+                        // Reverse Y direction
+                        ballSpeedY = -ballSpeedY;
+                    }
+
 
 
                     // Check if all blocks are destroyed
@@ -122,13 +144,38 @@ public class Main extends Application {
                 stopGame(stage, "Game Over. Better Luck Next time.");
             }
 
+
+        // Update power-up positions
+        List<Node> toRemove = new ArrayList<>();
+            for (Node node : root.getChildren()) {
+                if (node instanceof PowerUp) {
+                    PowerUp powerUp = (PowerUp) node;
+                    powerUp.updatePosition();
+
+                    // Check if power-up intersects with the paddle
+                    if (powerUp.intersectsPaddle(paddle)) {
+                        System.out.println("hiii");
+                        powerUp.handlePowerUpCollection(powerUp); // Call the method on the PowerUp instance
+                        toRemove.add(powerUp); // Mark for removal
+                    }
+
+                    // Check if power-up reaches the bottom
+                    if (powerUp.getTranslateY() > WINDOW_HEIGHT) {
+                        toRemove.add(powerUp); // Mark for removal
+                    }
+                }
+            }
+
+        // Remove collected and out-of-bounds power-ups
+        root.getChildren().removeAll(toRemove);
         }));
+
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
         // Handle paddle movement
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
-        scene.setFill(Color.LAVENDER);
+        scene.setFill(Color.BLACK);
         scene.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.LEFT) {
                     paddle.setTranslateX(paddle.getTranslateX() - 20);
@@ -143,10 +190,26 @@ public class Main extends Application {
                 paddle.setTranslateX(0-(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)); // Move to the left side
             }
 
-            if (event.getCode() == KeyCode.SPACE && !gameStarted.get()) {
-                gameStarted.set(true);  // Set gameStarted to true when space bar is pressed
-                // Start the game loop
-                timeline.play();
+            if (event.getCode() == KeyCode.SPACE) {
+                if (!gameStarted.get()) {
+                    gameStarted.set(true);  // Set gameStarted to true when space bar is pressed
+
+                    // Set initial position and speed when starting the game
+                    ballX = paddle.paddle_getX() + paddle.getTranslateX() + PADDLE_WIDTH / 2;
+                    ballY = WINDOW_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS;
+                    Main.ball.setTranslateX(ballX);
+                    Main.ball.setTranslateY(ballY);
+
+                    // Start the game loop
+                    timeline.play();
+                } else {
+                    // Reset the flag to false when space bar is pressed again
+                    Main.ballCaught = false;
+                    ballX = paddle.paddle_getX() + paddle.getTranslateX() + PADDLE_WIDTH / 2;
+                    ballY = WINDOW_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS;
+                    Main.ball.setTranslateX(ballX);
+                    Main.ball.setTranslateY(ballY);
+                }
             }
 
         });
@@ -263,7 +326,7 @@ class Block extends Group {
 }
 
 class Paddle extends Group {
-    private Rectangle paddle;
+    public Rectangle paddle;
 
     public Paddle() {
         paddle = new Rectangle(50, 50, Color.GREEN);
@@ -341,14 +404,40 @@ class SpecialBlock extends Block {
     public SpecialBlock() {
         super(2, true, false, false, Color.BLUE);
     }
+
+    public void takeHit(Paddle paddle) {
+        super.takeHit();
+
+        // Set the flag to indicate that the ball is caught
+        Main.ballCaught = true;
+
+        // Reset ball position to paddle
+        Main.ball.setTranslateX(paddle.paddle_getX() + paddle.getTranslateX() + Main.PADDLE_WIDTH / 2);
+        Main.ball.setTranslateY(Main.WINDOW_HEIGHT - Main.PADDLE_HEIGHT - Main.BALL_RADIUS);
+
+        // Resume ball movement
+        Main.ballSpeedX = 1;
+        Main.ballSpeedY = -1.3;
+    }
 }
 
 class PowerUpBlock extends Block {
     public PowerUpBlock() {
-        super(3, false, true, false, Color.LIGHTSALMON);
+        super(3, false, true, false, Color.SILVER);
+    }
+
+    @Override
+    public void takeHit() {
+        super.takeHit();
+
+        // Generate a power-up at the block's position
+        PowerUp powerUp = new PowerUp();
+        powerUp.placePowerUp(this.getTranslateX(), this.getTranslateY());
+
+        // Add the power-up to the root group
+        ((Group) this.getParent()).getChildren().add(powerUp);
     }
 }
-
 class ExplodingBlock extends Block {
     public ExplodingBlock() {
         super(4, false, false, true, Color.YELLOW);
@@ -361,12 +450,75 @@ class ExplodingBlock extends Block {
     }
 }
 
-class SpeedBoost extends Group {
+class PowerUp extends Group {
+    private static final double FALL_SPEED = 0.75; // Adjust the fall speed as needed
+    private Circle powerUp;
 
-    private static final double POWER_UP_RADIUS = 10;
+    private double POWER_UP_RADIUS = 6;
 
-    public SpeedBoost() {
-        Circle powerUp = new Circle(POWER_UP_RADIUS, Color.YELLOW);
+    public Color color;
+
+    public PowerUp() {
+        powerUp = new Circle(POWER_UP_RADIUS, getcolor());
         getChildren().add(powerUp);
+    }
+
+    public Color getcolor(){
+        Random random = new Random();
+
+        // Generate a random number between 0 (inclusive) and 4 (exclusive)
+        int randomNumber = random.nextInt(4);
+
+        if ((randomNumber)%4==0){
+            color=Color.YELLOW;
+        }
+        else if ((randomNumber)%4==1){
+            color=Color.MAGENTA;
+        }
+        else if ((randomNumber)%4==2){
+            color=Color.HONEYDEW;
+        }
+        else{
+            color=Color.FUCHSIA;
+        }
+        return color;
+    }
+
+    public void updatePosition() {
+        powerUp.setTranslateY(powerUp.getTranslateY() + FALL_SPEED);
+    }
+
+    public void placePowerUp(double x_coordinate, double y_coordinate) {
+        powerUp.setTranslateX(x_coordinate);
+        powerUp.setTranslateY(y_coordinate);
+    }
+
+    public boolean intersectsPaddle(Paddle paddle) {
+        return powerUp.getBoundsInParent().intersects(paddle.getBoundsInParent());
+    }
+    public void handlePowerUpCollection(PowerUp powerUp) {
+
+        if (color == Color.YELLOW){
+            System.out.println("width increase");
+            Main.PADDLE_WIDTH+=30;
+            Main.paddle.paddle.setWidth(Main.PADDLE_WIDTH);
+        }
+
+        if (color == Color.MAGENTA){
+            System.out.println("width increase");
+            Main.PADDLE_WIDTH+=30;
+            Main.paddle.paddle.setWidth(Main.PADDLE_WIDTH);
+        }
+
+//        if (color == color.HONEYDEW){
+//            Main.ballSpeedY -= 0.5;
+//            Main.ballSpeedX -= 0.5;
+//        }
+
+//        if (color == color.FUCHSIA){
+//            Main.ballSpeedY -= 0.5;
+//            Main.ballSpeedX -= 0.5;
+//        }
+
     }
 }

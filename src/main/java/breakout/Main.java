@@ -16,6 +16,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
+import javafx.scene.text.Text;
 
 
 /**
@@ -27,13 +28,15 @@ import javafx.util.Duration;
 public class Main extends Application {
     // useful names for constant values used
 
+    public Text rulesText;
+    public Text startText;
+    public Text livesText;
+    public Text levelText;
     public int lives_left = 5;
     public static final String TITLE = "Example JavaFX Animation";
     public static final Color DUKE_BLUE = new Color(0, 0.188, 0.529, 1);
     public static final int SIZE = 400;
-
     public static double BLOCK_WIDTH = 40;
-
     public static double BLOCK_HEIGHT = 30;
 
     public static final int WINDOW_WIDTH = 400;
@@ -61,14 +64,56 @@ public class Main extends Application {
     public int currentLevel = 1;
 
     public Timeline timeline;
+    public Scene scene;
+
+    public Group root;
 
     /**
      * Initialize what will be displayed.
      */
-    @Override
-    public void start (Stage stage) {
+
+    public void start(Stage stage) {
+        root = new Group();
+        scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT, Color.BLACK);
+
+        stage.setTitle("Breakout Game");
+        stage.setScene(scene);
+        stage.show();
+
+        showHomeScreen(root, stage);
+    }
+
+    public void showHomeScreen(Group root, Stage stage) {
+        // Clear the currentRoot group
+        root.getChildren().clear();
+
+        // Initialize Text nodes for rules and start message
+        rulesText = new Text("Game Rules:\n\n1. Press LEFT and RIGHT arrow keys to move the paddle.\n"
+                + "2. Use the paddle to bounce the ball and break the blocks.\n"
+                + "3. Catch power-ups to gain advantages.\n"
+                + "4. Avoid losing all lives.\n\nPress SPACE to start Level 1.");
+        rulesText.setFill(Color.WHITE);
+        rulesText.setTranslateX(10);
+        rulesText.setTranslateY(50);
+
+        startText = new Text("Press SPACE to start Level 1");
+        startText.setFill(Color.WHITE);
+        startText.setTranslateX(10);
+        startText.setTranslateY(350);
+
+        root.getChildren().addAll(rulesText, startText);
+
+        // Event handler for SPACE key press
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.SPACE) {
+                startLevel(root, stage);
+            }
+        });
+    }
+
+
+    public void startLevel(Group root, Stage stage) {
 //        timeline = new Timeline();
-        Group root = new Group();
 
         // Create ball
         Circle ball = new Circle(BALL_RADIUS, Color.BLUE);
@@ -76,14 +121,33 @@ public class Main extends Application {
         ball.setTranslateY(WINDOW_HEIGHT-PADDLE_HEIGHT-BALL_RADIUS);
         Main.ball = ball;
         // Create paddle
-
         Main.paddle = new Paddle(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2, WINDOW_HEIGHT - PADDLE_HEIGHT,PADDLE_WIDTH,PADDLE_HEIGHT);
         // Create blocks
 
+        Group currentRoot = new Group();
+
         // Parse configuration file and create blocks
         List<Block> blocks = ConfigParser.parseConfigFile("C:\\Users\\divya\\IdeaProjects\\projects\\breakout_dj200\\src\\main\\java\\breakout\\level1");
-        root.getChildren().addAll(blocks);
-        root.getChildren().addAll(ball,paddle);
+        currentRoot.getChildren().addAll(blocks);
+
+        livesText = new Text("Lives: " + lives_left);
+        livesText.setFill(Color.WHITE);
+        livesText.setTranslateX(WINDOW_WIDTH-75);
+        livesText.setTranslateY(20);
+
+        levelText = new Text("Level: " + currentLevel);
+        levelText.setFill(Color.WHITE);
+        levelText.setTranslateX(WINDOW_WIDTH-75);
+        levelText.setTranslateY(40);
+
+
+
+        // Add elements to the current root
+        currentRoot.getChildren().addAll(ball, paddle, livesText, levelText);
+        updateLivesText();
+
+        // Create a new Scene using the current root
+        Scene currentScene = new Scene(currentRoot, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         // Flag to check if the game has started
 
@@ -107,7 +171,7 @@ public class Main extends Application {
 
             // Ball-block collision
 
-            for (Node node : root.getChildren()) {
+            for (Node node : currentRoot.getChildren()) {
                 if (node instanceof Block && ball.getBoundsInParent().intersects(node.getBoundsInParent())) {
                     Block block = (Block) node;
                     if (block instanceof PowerUpBlock) {
@@ -124,12 +188,10 @@ public class Main extends Application {
                         ballSpeedY = -ballSpeedY;
                     }
 
-
-
                     // Check if all blocks are destroyed
                     if (remainingBlocks == 0) {
-                        loadNextLevel(root, stage);
-                        stopGame(stage, "Congratulations! You won!");
+                        loadNextLevel(currentRoot, stage);
+                        stopGame(stage, "Congratulations");
                     }
                     break; // Break out of loop to avoid concurrent modification exception
                 }
@@ -151,9 +213,11 @@ public class Main extends Application {
                 if (lives_left > 0) {
                     lives_left -= 1;
                     if (lives_left==0){
-                        stopGame(stage,"overrr");
+                        stopGame(stage,"Game over");
+                        return;
                     }
                     System.out.println("Life lost. Lives left: " + lives_left);
+                    updateLivesText();
 
                     // Pause the game temporarily to display a message or perform any other actions
                     timeline.pause();
@@ -163,25 +227,24 @@ public class Main extends Application {
 
                     // Reset the ball position to the initial position
 
-
                     // Resume the game
                 } else {
                     // No remaining lives, stop the game
-                    stopGame(stage, "Game Over");
+                    stopGame(stage, "Game over");
+                    return;
                 }
             }
 
-
-        // Update power-up positions
-        List<Node> toRemove = new ArrayList<>();
-            for (Node node : root.getChildren()) {
+            // Update power-up positions
+            List<Node> toRemove = new ArrayList<>();
+            for (Node node : currentRoot.getChildren()) {
                 if (node instanceof PowerUp) {
                     PowerUp powerUp = (PowerUp) node;
                     powerUp.updatePosition();
 
                     // Check if power-up intersects with the paddle
                     if (powerUp.intersectsPaddle(paddle)) {
-                        System.out.println("hiii");
+
                         powerUp.handlePowerUpCollection(powerUp); // Call the method on the PowerUp instance
                         toRemove.add(powerUp); // Mark for removal
                     }
@@ -193,22 +256,56 @@ public class Main extends Application {
                 }
             }
 
-        // Remove collected and out-of-bounds power-ups
-        root.getChildren().removeAll(toRemove);
+            // Remove collected and out-of-bounds power-ups
+            currentRoot.getChildren().removeAll(toRemove);
         }));
 
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
         // Handle paddle movement
-        Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
-        scene.setFill(Color.BLACK);
-        scene.setOnKeyPressed(event -> {
+        currentScene.setFill(Color.BLACK);
+        currentScene.setOnKeyPressed(event -> {
+            KeyCode keyPressed = event.getCode();
+
+            // Idea #1 - Increment life total when L key is pressed
+            if (keyPressed == KeyCode.L) {
+                lives_left++;
+                updateLivesText();
+            }
+
+            // Idea #2 - Reset ball and paddle positions when R key is pressed
+            else if (keyPressed == KeyCode.R) {
+                ballX = WINDOW_WIDTH / 2;
+                ballY = WINDOW_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS;
+                ball.setTranslateX(ballX);
+                ball.setTranslateY(ballY);
+
+                // Create paddle
+                Main.paddle.setTranslateX(0);
+            }
+
+            else if (keyPressed == KeyCode.F) {
+                Main.ballSpeedX *= 1.2;
+                Main.ballSpeedY *= 1.2;
+            }
+
+            // Idea #3 - Load specific level when number keys (1-9) are pressed
+            else if (keyPressed.isDigitKey() && Integer.parseInt(keyPressed.getName()) <= 9) {
+                int requestedLevel = Integer.parseInt(keyPressed.getName());
+                loadRequestedLevel(requestedLevel, currentRoot, stage);
+            }
+
+            // Idea #4 - Reset the game to splash screen when S key is pressed
+            else if (keyPressed == KeyCode.S) {
+                showHomeScreen(currentRoot, stage);
+            }
+
             if (event.getCode() == KeyCode.LEFT) {
-                    paddle.setTranslateX(paddle.getTranslateX() - 20);
+                paddle.setTranslateX(paddle.getTranslateX() - 20);
             }
             else if (event.getCode() == KeyCode.RIGHT) {
-                    paddle.setTranslateX(paddle.getTranslateX() + 20);
+                paddle.setTranslateX(paddle.getTranslateX() + 20);
             }
 
             if (paddle.getTranslateX() < 0 - (WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)-PADDLE_WIDTH) {
@@ -249,45 +346,122 @@ public class Main extends Application {
 
 
         stage.setTitle("Bouncing Ball Game");
-        stage.setScene(scene);
+        stage.setScene(currentScene);
         stage.show();
     }
-            private void stopGame(Stage primaryStage, String message) {
-                // Stop the game and display the message
-                if (message.contains("Game Over")) {
-                    primaryStage.close();
-                }
-            }
 
-            public static void main(String[] args) {
-                launch(args);
-            }
+    public void updateLivesText() {
+        livesText.setText("Lives: " + lives_left);
+    }
 
-    private void loadNextLevel(Group root, Stage stage) {
+    private void loadRequestedLevel(int requestedLevel, Group currentRoot, Stage stage) {
+        // Implement logic to load the requested level based on the provided level number
+        // ...
+
+        // Example: Load level 1
+        if (requestedLevel == 1) {
+            // Reset game state and load level 1
+            currentLevel = 0;
+            Main.paddle.setTranslateX(0);
+            resetGame();
+            loadNextLevel(currentRoot, stage);
+        }
+
+        else if (requestedLevel == 2) {
+            // Reset game state and load level 1
+            currentLevel = 1;
+            Main.paddle.setTranslateX(0);
+            resetGame();
+            loadNextLevel(currentRoot, stage);
+        }
+
+        else {
+            currentLevel = 2;
+            Main.paddle.setTranslateX(0);
+            resetGame();
+            loadNextLevel(currentRoot, stage);
+        }
+
+        // Add similar logic for other levels
+        // ...
+    }
+
+    public void displayGameOverScreen(Stage stage, String message) {
+        Group gameOverRoot = new Group();
+        Text gameOverText = new Text(message);
+        gameOverText.setFill(Color.WHITE);
+        gameOverText.setTranslateX(50);
+        gameOverText.setTranslateY(200);
+        gameOverRoot.getChildren().add(gameOverText);
+
+        Scene gameOverScene = new Scene(gameOverRoot, WINDOW_WIDTH, WINDOW_HEIGHT, Color.BLACK);
+        stage.setScene(gameOverScene);
+        stage.show();
+
+    }
+
+    public void displayCongratulationsScreen(Stage stage, String message) {
+        Group Congrats = new Group();
+        Text congrats_text = new Text(message);
+        congrats_text.setFill(Color.WHITE);
+        congrats_text.setTranslateX(50);
+        congrats_text.setTranslateY(200);
+        Congrats.getChildren().add(congrats_text);
+
+        Scene Congratsscene = new Scene(Congrats, WINDOW_WIDTH, WINDOW_HEIGHT, Color.BLACK);
+        stage.setScene(Congratsscene);
+        stage.show();
+
+    }
+
+    public void stopGame(Stage primaryStage, String message) {
+        // Stop the game and display the message
+            if (message.contains("Game over")) {
+                displayGameOverScreen(primaryStage, message);
+            }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    public void loadNextLevel(Group currentRoot, Stage stage) {
         // Increment the current level
         currentLevel++;
+        if (currentLevel==4){
+            displayCongratulationsScreen(stage, "Congratulations");
+            return;
+        }
 
         System.out.println("Loading level: " + currentLevel);
-
+        levelText.setText("Level: " + currentLevel);
 
         resetGame();
 
         timeline.stop();
 
-        // Parse the configuration file for the next level
-        List<Block> newBlocks = ConfigParser.parseConfigFile("C:\\Users\\divya\\IdeaProjects\\projects\\breakout_dj200\\src\\main\\java\\breakout\\level" + String.valueOf(currentLevel));
+
+            // Try to load the configuration file for the next level
+            List<Block> newBlocks = ConfigParser.parseConfigFile("C:\\Users\\divya\\IdeaProjects\\projects\\breakout_dj200\\src\\main\\java\\breakout\\level" + String.valueOf(currentLevel));
+
+        // Update remainingBlocks based on the total number of blocks
+            remainingBlocks = newBlocks.size();
+            System.out.print(remainingBlocks);
 
         // Clear the root group
-        root.getChildren().clear();
+            currentRoot.getChildren().clear();
 
-        // Add the new blocks to the root group
-        root.getChildren().addAll(newBlocks);
+            // Add the new blocks to the root group
+            currentRoot.getChildren().addAll(newBlocks);
 
-        // Add the paddle and ball back to the root group
-        root.getChildren().addAll(Main.ball, Main.paddle);
+            // Add the paddle and ball back to the root group
+            currentRoot.getChildren().addAll(Main.ball, Main.paddle);
 
-        // Reset other game state variables if needed
-         // Implement a method to reset other game state variables
+            // Reset other game state variables if needed
+            // Implement a method to reset other game state variables
+
+            currentRoot.getChildren().addAll(livesText, levelText);
+
     }
 
     private void resetGame() {
@@ -299,13 +473,14 @@ public class Main extends Application {
         Main.ball.setTranslateY(Main.ballY);
         Main.ballSpeedX = 1;
         Main.ballSpeedY = 1.3;
-        Main.remainingBlocks = 20; // You might need to adjust this based on your game's initial block count
+        Main.remainingBlocks = 40; // configuring for first level; automatic for all other levels
     }
 }
 
 class ConfigParser {
     public static List<Block> parseConfigFile(String filePath) {
         List<Block> blocks = new ArrayList<>();
+
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
@@ -554,26 +729,23 @@ class PowerUp extends Group {
     public void handlePowerUpCollection(PowerUp powerUp) {
 
         if (color == Color.YELLOW){
-            System.out.println("width increase");
             Main.PADDLE_WIDTH+=30;
             Main.paddle.paddle.setWidth(Main.PADDLE_WIDTH);
         }
 
         if (color == Color.MAGENTA){
-            System.out.println("width increase");
-            Main.PADDLE_WIDTH+=30;
-            Main.paddle.paddle.setWidth(Main.PADDLE_WIDTH);
+            Main.ballSpeedY *= 0.9;
+            Main.ballSpeedX *= 0.9;
         }
 
-//        if (color == color.HONEYDEW){
-//            Main.ballSpeedY -= 0.5;
-//            Main.ballSpeedX -= 0.5;
-//        }
+        if (color == color.HONEYDEW){
+            Main.ballSpeedX *= 1.2;
+            Main.ballSpeedX *= 1.2;
+        }
 
-//        if (color == color.FUCHSIA){
-//            Main.ballSpeedY -= 0.5;
-//            Main.ballSpeedX -= 0.5;
-//        }
-
+        if (color == color.FUCHSIA){
+            Main.PADDLE_WIDTH -= 15;
+            Main.ballSpeedX -= 15;
+        }
     }
 }

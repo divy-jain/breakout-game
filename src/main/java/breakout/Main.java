@@ -88,10 +88,24 @@ public class Main extends Application {
         root.getChildren().clear();
 
         // Initialize Text nodes for rules and start message
-        rulesText = new Text("Game Rules:\n\n1. Press LEFT and RIGHT arrow keys to move the paddle.\n"
-                + "2. Use the paddle to bounce the ball and break the blocks.\n"
-                + "3. Catch power-ups to gain advantages.\n"
-                + "4. Avoid losing all lives.\n\nPress SPACE to start Level 1.");
+        rulesText = new Text(
+                "Game Rules:\n\n" +
+                        "1. Press LEFT and RIGHT arrow keys to move the paddle.\n" +
+                        "2. Use the paddle to bounce the ball and break the blocks.\n" +
+                        "3. Catch power-ups to gain advantages:\n" +
+                        "   - Increase speed\n" +
+                        "   - Decrease ball speed\n" +
+                        "   - Increase paddle width\n" +
+                        "   - Decrease paddle width\n" +
+                        "4. Avoid losing all lives.\n" +
+                        "5. Different types of blocks:\n" +
+                        "   - Blue blocks: Returns ball to paddle\n" +
+                        "   - Silver blocks: Drop power-ups to be caught\n" +
+                        "   - Lightsalmon blocks: Require 2 hits to be destroyed\n" +
+                        "   - Dark sea green blocks: Require 4 hits to be destroyed\n" +
+                        "   - Papayawhip blocks: Normal blocks"
+        );
+
         rulesText.setFill(Color.WHITE);
         rulesText.setTranslateX(10);
         rulesText.setTranslateY(50);

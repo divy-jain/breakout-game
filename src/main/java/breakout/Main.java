@@ -230,7 +230,6 @@ public class Main extends Application {
                         stopGame(stage,"Game over");
                         return;
                     }
-                    System.out.println("Life lost. Lives left: " + lives_left);
                     updateLivesText();
 
                     // Pause the game temporarily to display a message or perform any other actions
@@ -355,8 +354,6 @@ public class Main extends Application {
         });
 
 
-        System.out.println(paddle.paddle_getX());
-        System.out.println(ball.getCenterY());
 
 
         stage.setTitle("Bouncing Ball Game");
@@ -369,8 +366,6 @@ public class Main extends Application {
     }
 
     private void loadRequestedLevel(int requestedLevel, Group currentRoot, Stage stage) {
-        // Implement logic to load the requested level based on the provided level number
-        // ...
 
         // Example: Load level 1
         if (requestedLevel == 1) {
@@ -396,8 +391,6 @@ public class Main extends Application {
             loadNextLevel(currentRoot, stage);
         }
 
-        // Add similar logic for other levels
-        // ...
     }
 
     public void displayGameOverScreen(Stage stage, String message) {
@@ -447,7 +440,6 @@ public class Main extends Application {
             return;
         }
 
-        System.out.println("Loading level: " + currentLevel);
         levelText.setText("Level: " + currentLevel);
 
         resetGame();
@@ -460,7 +452,6 @@ public class Main extends Application {
 
         // Update remainingBlocks based on the total number of blocks
             remainingBlocks = newBlocks.size();
-            System.out.print(remainingBlocks);
 
         // Clear the root group
             currentRoot.getChildren().clear();

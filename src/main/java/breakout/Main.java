@@ -18,6 +18,8 @@ import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 import javafx.scene.text.Text;
 
+import static javafx.scene.input.KeyCode.*;
+
 
 /**
  * Feel free to completely change this code or delete it entirely.
@@ -119,7 +121,7 @@ public class Main extends Application {
 
         // Event handler for SPACE key press
         scene.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.SPACE) {
+            if (event.getCode() == SPACE) {
                 startLevel(root, stage);
             }
         });
@@ -282,13 +284,13 @@ public class Main extends Application {
             KeyCode keyPressed = event.getCode();
 
             // Idea #1 - Increment life total when L key is pressed
-            if (keyPressed == KeyCode.L) {
+            if (keyPressed == L) {
                 lives_left++;
                 updateLivesText();
             }
 
             // Idea #2 - Reset ball and paddle positions when R key is pressed
-            else if (keyPressed == KeyCode.R) {
+            else if (keyPressed == R) {
                 ballX = WINDOW_WIDTH / 2;
                 ballY = WINDOW_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS;
                 ball.setTranslateX(ballX);
@@ -298,7 +300,7 @@ public class Main extends Application {
                 Main.paddle.setTranslateX(0);
             }
 
-            else if (keyPressed == KeyCode.F) {
+            else if (keyPressed == F) {
                 Main.ballSpeedX *= 1.2;
                 Main.ballSpeedY *= 1.2;
             }
@@ -310,14 +312,19 @@ public class Main extends Application {
             }
 
             // Idea #4 - Reset the game to splash screen when S key is pressed
-            else if (keyPressed == KeyCode.S) {
+            else if (keyPressed == S) {
                 showHomeScreen(currentRoot, stage);
             }
 
-            if (event.getCode() == KeyCode.LEFT) {
+            else if (keyPressed == P) {
+                Main.ballSpeedX *= 0.8;
+                Main.ballSpeedY *= 0.8;
+            }
+
+            if (event.getCode() == LEFT) {
                 paddle.setTranslateX(paddle.getTranslateX() - 20);
             }
-            else if (event.getCode() == KeyCode.RIGHT) {
+            else if (event.getCode() == RIGHT) {
                 paddle.setTranslateX(paddle.getTranslateX() + 20);
             }
 
@@ -327,7 +334,7 @@ public class Main extends Application {
                 paddle.setTranslateX(0-(WINDOW_WIDTH / 2 - PADDLE_WIDTH / 2)); // Move to the left side
             }
 
-            if (event.getCode() == KeyCode.SPACE) {
+            if (event.getCode() == SPACE) {
                 if (!gameStarted.get()) {
 
                     gameStarted.set(true);  // Set gameStarted to true when space bar is pressed

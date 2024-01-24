@@ -26,6 +26,8 @@ import javafx.util.Duration;
 
 public class Main extends Application {
     // useful names for constant values used
+
+    public int lives_left = 5;
     public static final String TITLE = "Example JavaFX Animation";
     public static final Color DUKE_BLUE = new Color(0, 0.188, 0.529, 1);
     public static final int SIZE = 400;
@@ -48,7 +50,7 @@ public class Main extends Application {
     public static double ballY = WINDOW_HEIGHT / 2;
     public static double ballSpeedX = 1;
     public static double ballSpeedY = 1.3;
-    public static int remainingBlocks = 100;
+    public static int remainingBlocks = 20;
 
     public static Paddle paddle;
 
@@ -56,12 +58,16 @@ public class Main extends Application {
 
     public static boolean ballCaught = false;
 
+    public int currentLevel = 1;
+
+    public Timeline timeline;
+
     /**
      * Initialize what will be displayed.
      */
     @Override
     public void start (Stage stage) {
-
+//        timeline = new Timeline();
         Group root = new Group();
 
         // Create ball
@@ -80,9 +86,10 @@ public class Main extends Application {
         root.getChildren().addAll(ball,paddle);
 
         // Flag to check if the game has started
+
         AtomicBoolean gameStarted = new AtomicBoolean(false);
 
-        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10), event -> {
+        timeline = new Timeline(new KeyFrame(Duration.millis(10), event -> {
 
             if (!gameStarted.get()) {
                 return;  // Do nothing if the game hasn't started
@@ -121,6 +128,7 @@ public class Main extends Application {
 
                     // Check if all blocks are destroyed
                     if (remainingBlocks == 0) {
+                        loadNextLevel(root, stage);
                         stopGame(stage, "Congratulations! You won!");
                     }
                     break; // Break out of loop to avoid concurrent modification exception
@@ -137,8 +145,30 @@ public class Main extends Application {
             }
 
             // Check if ball hits the bottom of the window
-            if (ballY > paddle.paddle_getY()+10) {
-                stopGame(stage, "Game Over. Better Luck Next time.");
+            if (ballY >= WINDOW_HEIGHT) {
+//                stopGame(stage, "Game Over. Better Luck Next time.");
+                // Check if there are remaining lives
+                if (lives_left > 0) {
+                    lives_left -= 1;
+                    if (lives_left==0){
+                        stopGame(stage,"overrr");
+                    }
+                    System.out.println("Life lost. Lives left: " + lives_left);
+
+                    // Pause the game temporarily to display a message or perform any other actions
+                    timeline.pause();
+                    gameStarted.set(false);
+
+                    // Display a message or perform any other actions to indicate life lost
+
+                    // Reset the ball position to the initial position
+
+
+                    // Resume the game
+                } else {
+                    // No remaining lives, stop the game
+                    stopGame(stage, "Game Over");
+                }
             }
 
 
@@ -189,6 +219,7 @@ public class Main extends Application {
 
             if (event.getCode() == KeyCode.SPACE) {
                 if (!gameStarted.get()) {
+
                     gameStarted.set(true);  // Set gameStarted to true when space bar is pressed
 
                     // Set initial position and speed when starting the game
@@ -206,6 +237,7 @@ public class Main extends Application {
                     ballY = WINDOW_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS;
                     Main.ball.setTranslateX(ballX);
                     Main.ball.setTranslateY(ballY);
+                    timeline.play();
                 }
             }
 
@@ -222,14 +254,54 @@ public class Main extends Application {
     }
             private void stopGame(Stage primaryStage, String message) {
                 // Stop the game and display the message
-                primaryStage.close();
-                System.out.println(message);
+                if (message.contains("Game Over")) {
+                    primaryStage.close();
+                }
             }
 
             public static void main(String[] args) {
                 launch(args);
             }
-        }
+
+    private void loadNextLevel(Group root, Stage stage) {
+        // Increment the current level
+        currentLevel++;
+
+        System.out.println("Loading level: " + currentLevel);
+
+
+        resetGame();
+
+        timeline.stop();
+
+        // Parse the configuration file for the next level
+        List<Block> newBlocks = ConfigParser.parseConfigFile("C:\\Users\\divya\\IdeaProjects\\projects\\breakout_dj200\\src\\main\\java\\breakout\\level" + String.valueOf(currentLevel));
+
+        // Clear the root group
+        root.getChildren().clear();
+
+        // Add the new blocks to the root group
+        root.getChildren().addAll(newBlocks);
+
+        // Add the paddle and ball back to the root group
+        root.getChildren().addAll(Main.ball, Main.paddle);
+
+        // Reset other game state variables if needed
+         // Implement a method to reset other game state variables
+    }
+
+    private void resetGame() {
+        // Reset game state variables to initial values
+        Main.ballCaught = false;
+        Main.ballX = WINDOW_WIDTH / 2;
+        Main.ballY = WINDOW_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS;
+        Main.ball.setTranslateX(Main.ballX);
+        Main.ball.setTranslateY(Main.ballY);
+        Main.ballSpeedX = 1;
+        Main.ballSpeedY = 1.3;
+        Main.remainingBlocks = 20; // You might need to adjust this based on your game's initial block count
+    }
+}
 
 class ConfigParser {
     public static List<Block> parseConfigFile(String filePath) {

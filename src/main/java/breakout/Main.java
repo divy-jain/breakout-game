@@ -319,7 +319,7 @@ public class Main extends Application {
             else if (keyPressed == P) {
                 Main.ballSpeedX *= 0.8;
                 Main.ballSpeedY *= 0.8;
-            }
+            } 
 
             if (event.getCode() == LEFT) {
                 paddle.setTranslateX(paddle.getTranslateX() - 20);
